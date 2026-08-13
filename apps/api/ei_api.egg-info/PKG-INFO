@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: ei-api
+Version: 0.1.0
+Summary: Enterprise Intelligence Platform API
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: pytest==8.2.0; extra == "dev"
+Requires-Dist: pytest-asyncio==0.23.0; extra == "dev"
+Requires-Dist: pytest-cov==4.1.0; extra == "dev"
+Requires-Dist: httpx==0.27.0; extra == "dev"
+Requires-Dist: faker==24.4.0; extra == "dev"
+Requires-Dist: ruff==0.4.0; extra == "dev"
+Requires-Dist: mypy==1.10.0; extra == "dev"
+Requires-Dist: black==24.3.0; extra == "dev"
+Requires-Dist: isort==5.13.0; extra == "dev"
+Requires-Dist: pre-commit==3.7.0; extra == "dev"
