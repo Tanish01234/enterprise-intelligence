@@ -4,12 +4,12 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import init_db, close_db
-from app.modules.auth import auth_router
-from app.modules.organizations import organizations_router
+from app.api.v1 import auth, organizations, datasets, analytics, ai, users, profiles, demo
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown."""
     # Startup
     await init_db()
     yield
@@ -18,9 +18,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Enterprise Intelligence API",
-    description="Unified analytics & AI assistant platform",
-    version="0.1.0",
+    title=settings.API_TITLE,
+    version=settings.API_VERSION,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -33,27 +34,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(profiles.router, prefix="/api/v1/profiles", tags=["Profiles"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(organizations.router, prefix="/api/v1/organizations", tags=["Organizations"])
+app.include_router(datasets.router, prefix="/api/v1/datasets", tags=["Datasets"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
+app.include_router(ai.router, prefix="/api/v1/ai", tags=["AI Copilot"])
+app.include_router(demo.router, prefix="/api/v1/demo", tags=["Demo Mode"])
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "version": "0.1.0"}
 
-
-@app.get("/api/v1/info")
-async def api_info():
+@app.get("/")
+async def root():
+    """Root endpoint."""
     return {
-        "name": "Enterprise Intelligence API",
-        "version": "0.1.0",
-        "docs_url": "/docs",
+        "name": settings.API_TITLE,
+        "version": settings.API_VERSION,
+        "status": "running",
+        "environment": settings.ENVIRONMENT,
     }
 
 
-from app.modules.datamart.router import router as datamart_router
-from app.modules.analytics.router import router as analytics_router
-
-
-# Include routers
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(organizations_router, prefix="/api/v1/organizations", tags=["organizations"])
-app.include_router(datamart_router, prefix="/api/v1", tags=["datamart"])
-app.include_router(analytics_router, prefix="/api/v1", tags=["analytics"])
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}

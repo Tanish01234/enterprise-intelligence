@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@ei/shared'],
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'echarts'],
-  },
+  swcMinify: true,
   images: {
     domains: ['localhost'],
   },

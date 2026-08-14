@@ -1,68 +1,94 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
+from typing import List
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore",
-    )
-
-    # App
-    APP_ENV: str = "development"
-    LOG_LEVEL: str = "debug"
+    """Application settings."""
+    
+    # API
+    API_TITLE: str = "Synora API"
+    API_VERSION: str = "1.0.0"
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
-
-    # Database
+    DEBUG: bool = False
+    ENVIRONMENT: str = "production"
+    
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    
+    # Database (PostgreSQL via Supabase)
     DATABASE_URL: str
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "enterprise_intelligence"
-
+    DATABASE_POOL_SIZE: int = 20
+    DATABASE_MAX_OVERFLOW: int = 40
+    
+    # DuckDB for Analytics
+    DUCKDB_PATH: str = "./data/analytics.duckdb"
+    
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
-
-    # Supabase
-    SUPABASE_URL: str
-    SUPABASE_ANON_KEY: str
-    SUPABASE_SERVICE_ROLE_KEY: str
-
-    # Auth
-    JWT_SECRET: str
-    JWT_EXPIRY: int = 3600
+    REDIS_MAX_CONNECTIONS: int = 50
+    
+    # Security
+    SECRET_KEY: str = ""
+    JWT_SECRET: str = ""
+    ALGORITHM: str = "HS256"
     JWT_ALGORITHM: str = "HS256"
-
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_EXPIRY: int = 3600
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
-
-    # AI
-    LLM_PROVIDER: str = "openai"
+    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    
+    # AI - Google Gemini (Primary)
+    GOOGLE_GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-pro"
+    
+    # AI - Grok (Fallback)
+    GROK_API_KEY: str = ""
+    GROK_API_URL: str = "https://api.x.ai/v1"
+    
+    # AI - OpenAI (Optional Fallback)
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    
+    # AI Configuration
+    AI_FALLBACK_ENABLED: bool = True
+    AI_TEMPERATURE: float = 0.7
+    AI_MAX_TOKENS: int = 2000
+    AI_MODEL: str = "gemini-1.5-pro"  # Backwards compatibility
+    
+    # File Upload
+    MAX_UPLOAD_SIZE: int = 104857600  # 100MB
+    UPLOAD_DIR: str = "./data/uploads"
+    ALLOWED_EXTENSIONS: List[str] = [".csv", ".xlsx", ".json", ".parquet"]
+    
+    # Rate Limiting
+    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_PER_HOUR: int = 1000
+    
+    # Monitoring
+    LOG_LEVEL: str = "INFO"
+    APP_ENV: str = "development"
+    SENTRY_DSN: str = ""
+    
+    # OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
 
-    # Market Data
-    MARKET_DATA_PATH: str = "/data/market"
 
-    # Feature Flags
-    ENABLE_BACKTESTING: bool = True
-    ENABLE_AI_COPILOT: bool = True
-    ENABLE_RETAIL_INTEL: bool = True
-    ENABLE_ALERTS: bool = False
-    ENABLE_FORECASTING: bool = False
-
-    # Demo
-    DEMO_ORG_NAME: str = "Demo Retail Co."
-    DEMO_ORG_SLUG: str = "demo-retail-co"
-    SEED_DATA_ENABLED: bool = True
-
-
-@lru_cache
+@lru_cache()
 def get_settings() -> Settings:
+    """Get cached settings instance."""
     return Settings()
 
 

@@ -1,38 +1,36 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from typing import AsyncGenerator
+import duckdb
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.base import Base  # noqa: F401 – re-exported for convenience
 
-
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.dialects.postgresql import JSONB
-
-
-@compiles(JSONB, "sqlite")
-def compile_jsonb_sqlite(type_, compiler, **kw):
-    return "JSON"
-
-
-# Create async engine
+# PostgreSQL Engine
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.APP_ENV == "development",
-    poolclass=NullPool if settings.APP_ENV == "test" else None,
+    echo=settings.DEBUG,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
     pool_pre_ping=True,
 )
 
-# Session factory
-async_session_maker = async_sessionmaker(
+# Async Session Factory
+AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
+    autocommit=False,
     autoflush=False,
 )
 
+# Base Model
+Base = declarative_base()
 
-async def get_session() -> AsyncSession:
-    async with async_session_maker() as session:
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency for getting async database sessions."""
+    async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit()
@@ -43,35 +41,57 @@ async def get_session() -> AsyncSession:
             await session.close()
 
 
-async def init_db() -> None:
-    """Initialize database - create tables if they don't exist."""
-    # Import models so their tables are registered with Base.metadata
-    _import_models()
+# DuckDB Connection
+class DuckDBConnection:
+    """DuckDB connection manager for analytics."""
+    
+    def __init__(self):
+        self.conn = None
+    
+    def connect(self):
+        """Create DuckDB connection."""
+        if not self.conn:
+            self.conn = duckdb.connect(settings.DUCKDB_PATH)
+            # Configure DuckDB for performance
+            self.conn.execute("SET threads TO 4")
+            self.conn.execute("SET memory_limit='2GB'")
+        return self.conn
+    
+    def close(self):
+        """Close DuckDB connection."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+    
+    def execute(self, query: str, params=None):
+        """Execute query."""
+        conn = self.connect()
+        if params:
+            return conn.execute(query, params)
+        return conn.execute(query)
+    
+    def fetch_df(self, query: str, params=None):
+        """Execute query and return pandas DataFrame."""
+        result = self.execute(query, params)
+        return result.df()
+
+
+# Global DuckDB instance
+duckdb_conn = DuckDBConnection()
+
+
+def get_duckdb():
+    """Dependency for getting DuckDB connection."""
+    return duckdb_conn
+
+
+async def init_db():
+    """Initialize database."""
     async with engine.begin() as conn:
-        if "sqlite" in settings.DATABASE_URL:
-            from sqlalchemy import text
-            await conn.execute(text("ATTACH DATABASE ':memory:' AS auth;"))
-            await conn.execute(text("ATTACH DATABASE ':memory:' AS public;"))
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def close_db() -> None:
+async def close_db():
     """Close database connections."""
     await engine.dispose()
-
-
-def _import_models() -> None:
-    """Import all model modules to register them with Base.metadata.
-    Called lazily to avoid circular imports at module load time.
-    """
-    import app.modules.auth.models  # noqa: F401
-    import app.modules.datamart.models  # noqa: F401
-    import app.modules.backtesting.models  # noqa: F401
-    import app.modules.copilot.models  # noqa: F401
-
-
-# Dependency for FastAPI routes
-from typing import Annotated
-from fastapi import Depends
-
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+    duckdb_conn.close()

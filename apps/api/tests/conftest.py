@@ -23,7 +23,7 @@ def compile_jsonb_sqlite(type_, compiler, **kw):
 
 class AuthUserStub(Base):
     __tablename__ = "users"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = {"schema": "auth", "extend_existing": True}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), nullable=True)

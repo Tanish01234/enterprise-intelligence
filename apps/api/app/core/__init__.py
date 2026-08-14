@@ -1,1 +1,1 @@
-# Enterprise Intelligence API - Core Package
+"""Core module."""
