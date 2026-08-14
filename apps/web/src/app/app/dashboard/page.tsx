@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, DollarSign, Users, Database, Activity, AlertCircle } from 'lucide-react'
@@ -20,7 +20,7 @@ interface ChartDataPoint {
   [key: string]: any
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const searchParams = useSearchParams()
   const [kpis, setKpis] = useState<KPI[]>([])
   const [revenueData, setRevenueData] = useState<ChartDataPoint[]>([])
@@ -357,5 +357,32 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+// Wrap with Suspense for useSearchParams
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
+          <p className="text-sm text-synora-gray-600">Loading...</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} glass>
+              <div className="animate-pulse">
+                <div className="h-10 w-10 bg-synora-gray-300 rounded-lg mb-3" />
+                <div className="h-8 bg-synora-gray-300 rounded mb-2" />
+                <div className="h-4 bg-synora-gray-300 rounded w-2/3" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
