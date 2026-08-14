@@ -8,6 +8,8 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
+  # Force npm instead of pnpm
+  NPM_USE_PRODUCTION = "false"
 
 # Redirect all requests to Next.js
 [[redirects]]
