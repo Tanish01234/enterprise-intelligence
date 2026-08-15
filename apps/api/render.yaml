@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: synora-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/synora.db
+      - key: DUCKDB_PATH
+        value: ./data/analytics.duckdb
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRY
+        value: 3600
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GOOGLE_GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
